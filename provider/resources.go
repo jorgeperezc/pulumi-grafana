@@ -12,27 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package xyz
+package grafana
 
 import (
 	"fmt"
 	"path/filepath"
 	"unicode"
 
-	"github.com/pulumi/pulumi-xyz/provider/pkg/version"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/pulumi/pulumi-grafana/provider/pkg/version"
 	"github.com/pulumi/pulumi-terraform-bridge/v3/pkg/tfbridge"
-	shim "github.com/pulumi/pulumi-terraform-bridge/v3/pkg/tfshim"
-	shimv1 "github.com/pulumi/pulumi-terraform-bridge/v3/pkg/tfshim/sdk-v1"
-	"github.com/pulumi/pulumi/sdk/v3/go/common/resource"
+	shimv2 "github.com/pulumi/pulumi-terraform-bridge/v3/pkg/tfshim/sdk-v2"
 	"github.com/pulumi/pulumi/sdk/v3/go/common/tokens"
-	"github.com/terraform-providers/terraform-provider-xyz/xyz"
+	"github.com/grafana/terraform-provider-grafana/grafana"
 )
 
 // all of the token components used below.
 const (
 	// packages:
-	mainPkg = "xyz"
+	mainPkg = "grafana"
 	// modules:
 	mainMod = "index" // the y module
 )
@@ -68,70 +65,46 @@ func boolRef(b bool) *bool {
 	return &b
 }
 
-// stringValue gets a string value from a property map if present, else ""
-func stringValue(vars resource.PropertyMap, prop resource.PropertyKey) string {
-	val, ok := vars[prop]
-	if ok && val.IsString() {
-		return val.StringValue()
-	}
-	return ""
-}
-
-// preConfigureCallback is called before the providerConfigure function of the underlying provider.
-// It should validate that the provider can be configured, and provide actionable errors in the case
-// it cannot be. Configuration variables can be read from `vars` using the `stringValue` function -
-// for example `stringValue(vars, "accessKey")`.
-func preConfigureCallback(vars resource.PropertyMap, c shim.ResourceConfig) error {
-	return nil
-}
-
 // managedByPulumi is a default used for some managed resources, in the absence of something more meaningful.
 var managedByPulumi = &tfbridge.DefaultInfo{Value: "Managed by Pulumi"}
 
 // Provider returns additional overlaid schema and metadata associated with the provider..
 func Provider() tfbridge.ProviderInfo {
 	// Instantiate the Terraform provider
-	p := shimv1.NewProvider(xyz.Provider().(*schema.Provider))
+	p := shimv2.NewProvider(grafana.Provider())
 
 	// Create a Pulumi provider mapping
 	prov := tfbridge.ProviderInfo{
 		P:           p,
-		Name:        "xyz",
-		Description: "A Pulumi package for creating and managing xyz cloud resources.",
-		Keywords:    []string{"pulumi", "xyz"},
+		Name:        "grafana",
+		Description: "A Pulumi package for creating and managing grafana cloud resources.",
+		Keywords:    []string{"pulumi", "grafana"},
 		License:     "Apache-2.0",
 		Homepage:    "https://pulumi.io",
-		Repository:  "https://github.com/pulumi/pulumi-xyz",
-		Config:      map[string]*tfbridge.SchemaInfo{
-			// Add any required configuration here, or remove the example below if
-			// no additional points are required.
-			// "region": {
-			// 	Type: makeType("region", "Region"),
-			// 	Default: &tfbridge.DefaultInfo{
-			// 		EnvVars: []string{"AWS_REGION", "AWS_DEFAULT_REGION"},
-			// 	},
-			// },
+		Repository:  "https://github.com/pulumi/pulumi-grafana",
+		Config: map[string]*tfbridge.SchemaInfo{
 		},
-		PreConfigureCallback: preConfigureCallback,
-		Resources:            map[string]*tfbridge.ResourceInfo{
-			// Map each resource in the Terraform provider to a Pulumi type. Two examples
-			// are below - the single line form is the common case. The multi-line form is
-			// needed only if you wish to override types or other default options.
-			//
-			// "aws_iam_role": {Tok: makeResource(mainMod, "IamRole")}
-			//
-			// "aws_acm_certificate": {
-			// 	Tok: makeResource(mainMod, "Certificate"),
-			// 	Fields: map[string]*tfbridge.SchemaInfo{
-			// 		"tags": {Type: makeType(mainPkg, "Tags")},
-			// 	},
-			// },
-		},
-		DataSources: map[string]*tfbridge.DataSourceInfo{
-			// Map each resource in the Terraform provider to a Pulumi function. An example
-			// is below.
-			// "aws_ami": {Tok: makeDataSource(mainMod, "getAmi")},
-		},
+		Resources: map[string]*tfbridge.ResourceInfo{
+            "grafana_alert_notification": {Tok: makeResource(mainMod, "AlertNotification")},
+            "grafana_builtin_role_assignment": {Tok: makeResource(mainMod, "BuiltinRoleAssignment")},
+            "grafana_dashboard": {Tok: makeResource(mainMod, "Dashboard")},
+            "grafana_dashboard_permission": {Tok: makeResource(mainMod, "DashboardPermission")},
+            "grafana_data_source": {Tok: makeResource(mainMod, "DataSource")},
+            "grafana_folder": {Tok: makeResource(mainMod, "Folder")},
+            "grafana_folder_permission": {Tok: makeResource(mainMod, "FolderPermission")},
+            "grafana_organization": {Tok: makeResource(mainMod, "Organization")},
+            "grafana_role": {Tok: makeResource(mainMod, "Role")},
+            "grafana_synthetic_monitoring_check": {Tok: makeResource(mainMod, "SyntheticMonitoringCheck")},
+            "grafana_synthetic_monitoring_probe": {Tok: makeResource(mainMod, "SyntheticMonitoringProbe")},
+            "grafana_team": {Tok: makeResource(mainMod, "Team")},
+            "grafana_team_external_group": {Tok: makeResource(mainMod, "TeamExternalGroup")},
+            "grafana_team_preferences": {Tok: makeResource(mainMod, "TeamPreferences")},
+            "grafana_user": {Tok: makeResource(mainMod, "User")},
+        },
+        DataSources: map[string]*tfbridge.DataSourceInfo{
+            "grafana_synthetic_monitoring_probe": {Tok: makeDataSource(mainMod, "getSyntheticMonitoringProbe")},
+            "grafana_synthetic_monitoring_probes": {Tok: makeDataSource(mainMod, "getSyntheticMonitoringProbes")},
+        },
 		JavaScript: &tfbridge.JavaScriptInfo{
 			// List any npm dependencies and their versions
 			Dependencies: map[string]string{
@@ -141,10 +114,6 @@ func Provider() tfbridge.ProviderInfo {
 				"@types/node": "^10.0.0", // so we can access strongly typed node definitions.
 				"@types/mime": "^2.0.0",
 			},
-			// See the documentation for tfbridge.OverlayInfo for how to lay out this
-			// section, or refer to the AWS provider. Delete this section if there are
-			// no overlay files.
-			//Overlay: &tfbridge.OverlayInfo{},
 		},
 		Python: &tfbridge.PythonInfo{
 			// List any Python dependencies and their version ranges
