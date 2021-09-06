@@ -1,0 +1,3 @@
+name: grafana-user
+runtime: nodejs
+description: Grafana user in TS

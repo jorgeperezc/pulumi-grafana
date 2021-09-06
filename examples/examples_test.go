@@ -1,7 +1,15 @@
 package examples
+
 import (
+	"os"
 	"testing"
 )
-func TestExamples(t *testing.T) {
-	t.Skip("Not implemented")
+
+func getCwd(t *testing.T) string {
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.FailNow()
+	}
+
+	return cwd
 }
